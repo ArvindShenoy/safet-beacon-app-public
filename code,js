@@ -2,72 +2,81 @@
 const BACKEND_URL = "https://arvindshenoy-safety-beacon-backend.hf.space"; 
 
 let userAccessToken = null;
+let selectedFolderId = null;
 let broadcastInterval = null;
 let mediaRecorder = null;
 let videoChunks = [];
 
-// 1. Clear explanation of what the Authorize button does
+// Handle authentication completion
 function handleCredentialResponse(response) {
-    console.log("Google Authentication connection handshake successful.");
     userAccessToken = response.access_token; 
     
-    // Updates UI visually so user knows they are authenticated
     const statusBox = document.getElementById("auth-status");
     statusBox.innerText = "Connected to Google Client Interface ✅";
-    statusBox.style.color = "#10b981"; // Changes text to emerald green
+    statusBox.style.color = "#10b981";
+
+    // Reveal the folder picker button once authenticated
+    document.getElementById("picker-btn").style.display = "block";
 }
 
-// 2. Automated Link Checker (Validates the user's input automatically)
-document.addEventListener("DOMContentLoaded", () => {
-    const folderInput = document.getElementById("drive-folder-url");
-    if(folderInput) {
-        folderInput.addEventListener("input", (e) => {
-            const urlVal = e.target.value.trim();
-            const messagePlaceholder = document.getElementById("broadcast-status");
-            
-            if (urlVal.includes("://google.com") || urlVal.length > 15) {
-                messagePlaceholder.innerText = "Target Folder Registered & Validated Successfully. Ready.";
-                messagePlaceholder.style.color = "#34d399";
-            } else if (urlVal.length === 0) {
-                messagePlaceholder.innerText = "";
-            } else {
-                messagePlaceholder.innerText = "Checking string format... Paste a valid full Google Drive URL.";
-                messagePlaceholder.style.color = "#fbbf24";
-            }
-        });
-    }
-});
-
-function extractFolderId(url) {
-    if (!url) return null;
-    const match = url.match(/folders\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : url; 
-}
-
-// 3. Main Controller: Starts loops for Images (6s) and Videos (1m)
-function triggerEmergencyBroadcast() {
+// Open Google's native Folder Browser and Creator pop-up window
+function openGoogleFolderPicker() {
     if (!userAccessToken) {
-        alert("CRITICAL ERROR: Please tap 'Authorize Google Identity' and log in first before transmitting metrics.");
+        alert("Please log in first!");
         return;
     }
 
-    const folderInput = document.getElementById("drive-folder-url").value;
-    const folderId = extractFolderId(folderInput);
-    const statusDisplay = document.getElementById("broadcast-status");
+    // Configure Picker View to strictly show Folders only
+    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true)
+        .setMimeTypes('application/vnd.google-apps.folder');
 
-    statusDisplay.innerText = "🔄 EMERGENCY LOOP INITIALIZED: Transmitting background packets...";
-    statusDisplay.style.color = "#ef4444";
+    // Build the popup window structure
+    const picker = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(userAccessToken)
+        .setDeveloperKey(GOOGLE_DEVELOPER_KEY) // Authenticates your app configuration permissions
+        .setCallback(pickerCallback)
+        .build();
 
-    // --- LOOP A: TRANSMIT COMPRESSED IMAGES EVERY 6 SECONDS ---
-    broadcastInterval = setInterval(() => {
-        captureAndSendSnapshot(folderId);
-    }, 6000); // 6000 milliseconds = 6 seconds
-
-    // --- LOOP B: INITIALIZE VIDEO STREAM CHUNKS EVERY 1 MINUTE ---
-    startBackgroundVideoRecording(folderId);
+    picker.setVisible(true);
 }
 
-// 4. Background Canvas Extractor (Runs quietly every 6 seconds)
+// Processes the user's folder selection or creation click
+function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+        const doc = data.docs[0];
+        selectedFolderId = doc.id; // Extract the pure secure Google ID string
+        const folderName = doc.name;
+
+        // Update the screen instantly with a confirmation message
+        const folderStatus = document.getElementById("folder-status");
+        folderStatus.innerText = `Target Folder Selected: "${folderName}" ✅`;
+        folderStatus.style.color = "#34d399";
+    }
+}
+
+// Main Execution Controller
+function triggerEmergencyBroadcast() {
+    if (!userAccessToken) {
+        alert("CRITICAL ERROR: Please authenticate with Google before launching loops.");
+        return;
+    }
+
+    const statusDisplay = document.getElementById("broadcast-status");
+    statusDisplay.innerText = "🔄 EMERGENCY LOOP INITIALIZED: Transmitting packets to target directory...";
+    statusDisplay.style.color = "#ef4444";
+
+    // Loop A: Image sequence transmission every 6 seconds
+    broadcastInterval = setInterval(() => {
+        captureAndSendSnapshot(selectedFolderId);
+    }, 6000);
+
+    // Loop B: Video slice processing every 1 minute
+    startBackgroundVideoRecording(selectedFolderId);
+}
+
+// Background Canvas Frame Extraction Engine
 async function captureAndSendSnapshot(folderId) {
     navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
@@ -79,12 +88,12 @@ async function captureAndSendSnapshot(folderId) {
             canvas.width = videoElement.videoWidth || 640;
             canvas.height = videoElement.videoHeight || 480;
             canvas.getContext("2d").drawImage(videoElement, 0, 0);
-            base64Media = canvas.toDataURL("image/jpeg", 0.7); // 0.7 compression factor preserves bandwidth
+            base64Media = canvas.toDataURL("image/jpeg", 0.7);
         }
 
         const payload = {
             access_token: userAccessToken,
-            folder_id: folderId || null,
+            folder_id: folderId || null, // Directly targets selectedFolderId or goes to drive root
             latitude: latitude,
             longitude: longitude,
             media_base64: base64Media,
@@ -97,71 +106,48 @@ async function captureAndSendSnapshot(folderId) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
-            console.log("6-Second Snapshot Packet Synced Successfully.");
+            console.log("Telemetry Image slice logged.");
         } catch (err) {
-            console.error("Packet drop error:", err);
+            console.error(err);
         }
     });
 }
 
-// 5. Native Hardware Video Pipeline Engine (Saves 15-second clips to drive every minute)
+// Multi-part Segmented Recording Thread Interface
 function startBackgroundVideoRecording(folderId) {
     const videoElement = document.getElementById("live-camera");
     if (!videoElement || !videoElement.srcObject) return;
 
     const stream = videoElement.srcObject;
     
-    // Set up continuous 1-minute tracking interval loop
     setInterval(() => {
         videoChunks = [];
         mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
 
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data && event.data.size > 0) {
-                videoChunks.push(event.data);
-            }
-        };
-
+        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
         mediaRecorder.onstop = async () => {
             const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
-            
-            // Convert binary video file slice into standard base64 raw string layout
             const reader = new FileReader();
             reader.readAsDataURL(videoBlob);
             reader.onloadend = async () => {
-                const base64Video = reader.result;
-                
-                navigator.geolocation.getCurrentPosition(async (position) => {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
                     const payload = {
                         access_token: userAccessToken,
                         folder_id: folderId || null,
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        media_base64: base64Video,
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                        media_base64: reader.result,
                         media_type: "video/webm"
                     };
-
                     try {
-                        await fetch(`${BACKEND_URL}/api/broadcast`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(payload)
-                        });
-                        console.log("1-Minute Comprehensive Video Chunk Deployed Successfully.");
-                    } catch (e) {
-                        console.error(e);
-                    }
+                        await fetch(`${BACKEND_URL}/api/broadcast`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                        console.log("Telemetry Video segment logged.");
+                    } catch (e) { console.error(e); }
                 });
             };
         };
 
-        // Start recording hardware buffer loop, capture a 15-second clip slice, then freeze and dispatch
         mediaRecorder.start();
-        setTimeout(() => {
-            if(mediaRecorder.state !== "inactive") {
-                mediaRecorder.stop();
-            }
-        }, 15000); // Record duration buffer length = 15 seconds
-
-    }, 60000); // Repeats recording workflow setup sequence every 60 seconds (1 minute)
+        setTimeout(() => { if(mediaRecorder.state !== "inactive") mediaRecorder.stop(); }, 15000);
+    }, 60000);
 }
