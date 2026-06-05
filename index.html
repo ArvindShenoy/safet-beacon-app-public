@@ -23,24 +23,18 @@
         #folder-status { font-size: 14px; color: #9ca3af; font-weight: 500; margin-top: 4px; word-break: break-all; }
         #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
-
-    <!-- Essential Google Scripts Hosted Globally -->
-    <script src="https://google.com"></script>
-    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
 
     <h2>System Console</h2>
     <p class="subtitle">Secure Telemetry Router</p>
 
-    <!-- Auth Module -->
     <div class="card">
         <span class="card-label">Authentication Hook</span>
-        <div id="auth-status">Status: Disconnected</div>
-        <button id="auth-btn" class="btn-auth">Authorize Google Identity</button>
+        <div id="auth-status">Initializing Google Framework...</div>
+        <button id="auth-btn" class="btn-auth" style="display:none;">Authorize Google Identity</button>
     </div>
 
-    <!-- Picker Module -->
     <div class="card">
         <span class="card-label">Target Destination</span>
         <button id="picker-btn" class="btn-picker" onclick="openGoogleFolderPicker()">📁 Select or Create Drive Folder</button>
@@ -49,48 +43,67 @@
 
     <video id="live-camera" autoplay playsinline></video>
 
-    <!-- Trigger Module -->
     <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">SEND TELEMETRY ALERT</button>
     <div id="broadcast-status"></div>
 
-    <!-- Process Processing Scripts -->
+    <!-- Processing Controller Logic Container -->
     <script src="code.js"></script>
 
     <script>
-        // Start streaming video into local hardware memory allocations
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
-            document.getElementById('live-camera').srcObject = stream;
-        }).catch(err => console.log("Camera bypassed."));
-
-        // Central Key Registers
         const GOOGLE_CLIENT_ID = '://googleusercontent.com'; 
         const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
 
-        // Tie the click handler explicitly via EventListeners to prevent browser popup blocks
-        document.getElementById('auth-btn').addEventListener('click', () => {
-            const client = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/drive.file https://googleapis.com',
-                callback: (tokenResponse) => {
-                    if (tokenResponse && tokenResponse.access_token) {
-                        // Pass token securely over to the processing logic container
-                        handleCredentialResponse(tokenResponse);
-                    }
-                }
-            });
-            client.requestAccessToken();
-        });
+        // 1. Initialize camera pipeline memory buffers
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
+            document.getElementById('live-camera').srcObject = stream;
+        }).catch(err => console.log("Camera hardware bypassed."));
 
-        // Initialize Native GAPI library for sub-windows
-        window.addEventListener('load', () => {
-            gapi.load('picker', { 'callback': () => console.log('Picker framework active.') });
-        });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
-            });
+        // 2. Load script files sequentially to prevent mobile touch freezes
+        function loadScript(url, callback) {
+            const script = document.createElement("script");
+            script.type = "text/javascript";
+            script.src = url;
+            script.onload = callback;
+            document.head.appendChild(script);
         }
+
+        window.addEventListener('load', () => {
+            // Unregister past dead service worker states immediately
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for(let reg of regs) reg.unregister();
+                });
+            }
+
+            loadScript("https://google.com", () => {
+                loadScript("https://apis.google.com/js/api.js", () => {
+                    gapi.load('picker', { 'callback': () => {
+                        console.log('Picker loaded.');
+                        document.getElementById('auth-status').innerText = "Status: Disconnected";
+                        document.getElementById('auth-btn').style.display = "block";
+                    }});
+                });
+            });
+        });
+
+        // 3. Native touch-event binder to explicitly bypass mobile browser pop-up blockers
+        document.getElementById('auth-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            try {
+                const tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: GOOGLE_CLIENT_ID,
+                    scope: 'https://googleapis.com https://googleapis.com',
+                    callback: (tokenResponse) => {
+                        if (tokenResponse && tokenResponse.access_token) {
+                            handleCredentialResponse(tokenResponse);
+                        }
+                    }
+                });
+                tokenClient.requestAccessToken({ prompt: 'consent' }); // Forces popup authorization mode on touch interface
+            } catch(err) {
+                alert("Google Client init failed: " + err.message);
+            }
+        });
     </script>
 </body>
 </html>
