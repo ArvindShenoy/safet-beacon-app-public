@@ -1,0 +1,82 @@
+// 🚨 CRUCIAL CONFIGURATION: Tell your app where your Python server lives
+const BACKEND_URL = "https://hf.space"; 
+
+let userAccessToken = null;
+
+// Capture the Google OAuth Access Token from Sign-In
+function handleCredentialResponse(response) {
+    console.log("Google Authentication successful.");
+    userAccessToken = response.access_token; 
+    document.getElementById("auth-status").innerText = "Authenticated with Google ✅";
+}
+
+// Helper: Extract Google Drive Folder ID from a raw URL link
+function extractFolderId(url) {
+    if (!url) return null;
+    const match = url.match(/folders\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : url; 
+}
+
+// Capture Camera Frame & Location, then Broadcast to Hugging Face
+async function triggerEmergencyBroadcast() {
+    if (!userAccessToken) {
+        alert("Please click 'Log In with Google' first!");
+        return;
+    }
+
+    const folderInput = document.getElementById("drive-folder-url").value;
+    const folderId = extractFolderId(folderInput);
+    
+    document.getElementById("broadcast-status").innerText = "Broadcasting telemetry...";
+
+    // 1. Get Live Geolocation Coordinates from the phone
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        let base64Media = null;
+        let mimeType = "image/jpeg";
+
+        // 2. Capture Snapshot image from your phone's active camera stream
+        const videoElement = document.getElementById("live-camera");
+        if (videoElement && videoElement.srcObject) {
+            const canvas = document.createElement("canvas");
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            canvas.getContext("2d").drawImage(videoElement, 0, 0);
+            base64Media = canvas.toDataURL(mimeType);
+        }
+
+        // 3. Construct Payload with Google auth credentials included
+        const payload = {
+            access_token: userAccessToken,
+            folder_id: folderId || null,
+            latitude: latitude,
+            longitude: longitude,
+            media_base64: base64Media,
+            media_type: mimeType
+        };
+
+        // 4. Send directly to your Hugging Face Zero-Data Server Pipe
+        try {
+            const response = await fetch(`${BACKEND_URL}/api/broadcast`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            if (response.ok) {
+                document.getElementById("broadcast-status").innerText = "Broadcast successful! Files created in your Drive.";
+                console.log(result);
+            } else {
+                throw new Error(result.detail || "Upload failed");
+            }
+        } catch (err) {
+            console.error(err);
+            document.getElementById("broadcast-status").innerText = `Error: ${err.message}`;
+        }
+
+    }, (error) => {
+        alert("Geolocation access denied. Cannot broadcast coordinates.");
+    });
+}
