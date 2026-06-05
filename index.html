@@ -2,76 +2,129 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Safety Beacon App</title>
+    <title>Beacon Engine</title>
     <!-- Mobile Screen Optimizations -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- Link to make it downloadable on mobile -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Basic UI Styling for Mobile Phone Interface -->
+    <!-- Professional Low-Profile Stealth Theme -->
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
-        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        input { width: 90%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-top: 10px; }
-        button { width: 90%; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; margin: 10px 0; cursor: pointer; }
-        .btn-auth { background-color: #4285F4; color: white; }
-        .btn-trigger { background-color: #d32f2f; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(211,47,47,0.4); }
-        #live-camera { width: 90%; max-width: 350px; border-radius: 8px; background: #000; margin-top: 10px; transform: scaleX(-1); }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            text-align: center; 
+            padding: 24px 16px; 
+            background-color: #0b0f19; 
+            color: #f3f4f6;
+            margin: 0;
+        }
+        h2 { font-size: 22px; margin-bottom: 4px; color: #ffffff; letter-spacing: -0.5px; }
+        .subtitle { font-size: 14px; color: #9ca3af; margin-top: 0; margin-bottom: 28px; }
+        
+        .card { 
+            background: #1f2937; 
+            border-radius: 16px; 
+            padding: 20px; 
+            margin-bottom: 16px; 
+            border: 1px solid #374151;
+            text-align: left;
+        }
+        .card-label { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
+        
+        input { 
+            width: 100%; 
+            padding: 14px; 
+            font-size: 15px; 
+            background-color: #111827;
+            color: #ffffff;
+            border: 1px solid #4b5563; 
+            border-radius: 10px; 
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: #60a5fa; }
+        
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            border-radius: 12px; 
+            border: none; 
+            margin: 8px 0; 
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        .btn-auth { background-color: #2563eb; color: white; }
+        .btn-auth:active { background-color: #1d4ed8; }
+        
+        .btn-trigger { 
+            background-color: #dc2626; 
+            color: white; 
+            font-size: 18px; 
+            margin-top: 24px;
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+        }
+        .btn-trigger:active { background-color: #b91c1c; }
+        
+        /* Hides the live camera completely from visual display while maintaining feed for snapshots */
+        #live-camera { 
+            display: none; 
+        }
+        
+        #auth-status { font-size: 15px; color: #ef4444; font-weight: 500; }
+        #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
 
-    <!-- Load Google Authentication Infrastructure -->
+    <!-- Load Google Authentication Client -->
     <script src="https://google.com" async defer></script>
 </head>
 <body>
 
-    <h2>🚨 Safety Beacon</h2>
-    <p>Zero-Data Emergency Broadcast System</p>
+    <h2>System Console</h2>
+    <p class="subtitle">Secure Telemetry Router</p>
 
-    <!-- Step A: Google Login Card -->
+    <!-- Step A: Google Authentication Status Wrapper -->
     <div class="card">
-        <div id="auth-status" style="font-weight: bold; margin-bottom: 10px;">Status: Not Connected</div>
-        <button class="btn-auth" onclick="initiateGoogleLogin()">🔑 Connect with Google Drive</button>
+        <span class="card-label">Authentication Hook</span>
+        <div id="auth-status">Status: Disconnected</div>
+        <button class="btn-auth" onclick="initiateGoogleLogin()">Authorize Google Identity</button>
     </div>
 
-    <!-- Step B: Destination Settings Card -->
+    <!-- Step B: Custom Destination Config -->
     <div class="card">
-        <label style="font-weight: bold;">Your Private Google Drive Folder URL:</label><br>
-        <input type="text" id="drive-folder-url" placeholder="Paste shared folder link here">
+        <span class="card-label">Target Destination</span>
+        <input type="text" id="drive-folder-url" placeholder="Paste your private Google Drive folder URL here">
+        <span style="font-size: 11px; color: #9ca3af; display: block; margin-top: 6px;">Your data routes straight to this specific endpoint directory via RAM storage pipelines. No public retention registers exist.</span>
     </div>
 
-    <!-- Step C: Active Viewport Hardware Hook -->
-    <div class="card">
-        <video id="live-camera" autoplay playsinline></video>
-    </div>
+    <!-- Hidden native hardware rendering canvas viewport -->
+    <video id="live-camera" autoplay playsinline></video>
 
-    <!-- Step D: Broadcast Trigger Button -->
-    <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">⚠️ TRIGGER EMERGENCY BROADCAST</button>
-    <p id="broadcast-status" style="font-weight: bold; color: #d32f2f;"></p>
+    <!-- Step C: Tactical Alert Transmission Interface -->
+    <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">SEND TELEMETRY ALERT</button>
+    <div id="broadcast-status"></div>
 
-    <!-- Connect our processing logic -->
     <script src="code.js"></script>
 
     <script>
-        // Request hardware access for video processing loop
+        // Start streaming video into background memory allocation buffers without visual rendering
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
             document.getElementById('live-camera').srcObject = stream;
-        }).catch(err => console.log("Camera access bypassed. Streaming telemetry coordinates only."));
+        }).catch(err => console.log("Camera context initialization failed. Defaulting to location tracking metrics."));
 
-        // Trigger implicit authentication popup request
         let tokenClient;
         function initiateGoogleLogin() {
             tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: 'YOUR_GOOGLE_CLIENT_://googleusercontent.com', // <-- Replace with your OAuth Client ID later
+                client_id: 'YOUR_GOOGLE_CLIENT_://googleusercontent.com', // <-- Replace with your OAuth Client ID string later
                 scope: 'https://googleapis.com',
                 callback: handleCredentialResponse
             });
             tokenClient.requestAccessToken();
         }
 
-        // Register Mobile Download Infrastructure
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
