@@ -1,4 +1,4 @@
-// This forces your phone to discard old offline assets immediately
+```javascript
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -14,6 +14,5 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Bypass cache completely and pull fresh code from the internet
   event.respondWith(fetch(event.request));
 });
