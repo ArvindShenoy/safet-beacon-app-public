@@ -16,7 +16,7 @@
         .card-label { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
         button { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 12px; border: none; margin: 8px 0; cursor: pointer; transition: background 0.2s; }
         .btn-auth { background-color: #2563eb; color: white; }
-        .btn-picker { background-color: #10b981; color: white; display: none; } /* Hidden until logged in */
+        .btn-picker { background-color: #10b981; color: white; display: none; } 
         .btn-trigger { background-color: #dc2626; color: white; font-size: 18px; margin-top: 24px; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3); }
         #live-camera { display: none; }
         #auth-status { font-size: 15px; color: #ef4444; font-weight: 500; margin-bottom: 10px; }
@@ -24,23 +24,23 @@
         #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
 
-    
-    <script src="https://google.com" async defer></script>
-    <script src="https://google.com" async defer></script>
+    <!-- Essential Google Scripts Hosted Globally -->
+    <script src="https://google.com"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
 
     <h2>System Console</h2>
     <p class="subtitle">Secure Telemetry Router</p>
 
-    <!-- Step A: Google Auth -->
+    <!-- Auth Module -->
     <div class="card">
         <span class="card-label">Authentication Hook</span>
         <div id="auth-status">Status: Disconnected</div>
-        <button class="btn-auth" onclick="initiateGoogleLogin()">Authorize Google Identity</button>
+        <button id="auth-btn" class="btn-auth">Authorize Google Identity</button>
     </div>
 
-    <!-- Step B: Picker Target Folder Interface -->
+    <!-- Picker Module -->
     <div class="card">
         <span class="card-label">Target Destination</span>
         <button id="picker-btn" class="btn-picker" onclick="openGoogleFolderPicker()">📁 Select or Create Drive Folder</button>
@@ -49,47 +49,48 @@
 
     <video id="live-camera" autoplay playsinline></video>
 
-    <!-- Step C: Trigger Engine -->
+    <!-- Trigger Module -->
     <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">SEND TELEMETRY ALERT</button>
     <div id="broadcast-status"></div>
 
+    <!-- Process Processing Scripts -->
     <script src="code.js"></script>
 
     <script>
-        // Start background media stream
+        // Start streaming video into local hardware memory allocations
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
             document.getElementById('live-camera').srcObject = stream;
-        }).catch(err => console.log("Camera hardware standalone tracking context fallback."));
+        }).catch(err => console.log("Camera bypassed."));
 
-                // Global Configuration Variables
-        const GOOGLE_CLIENT_ID = '697441725870-9jt8upabgou1vhmv63tn34kvg15jubud.apps.googleusercontent.com'; 
+        // Central Key Registers
+        const GOOGLE_CLIENT_ID = '://googleusercontent.com'; 
         const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
 
-        let tokenClient;
-        function initiateGoogleLogin() {
-            tokenClient = google.accounts.oauth2.initTokenClient({
+        // Tie the click handler explicitly via EventListeners to prevent browser popup blocks
+        document.getElementById('auth-btn').addEventListener('click', () => {
+            const client = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
-                scope: 'https://googleapis.com https://googleapis.com',
-                callback: (response) => {
-                    // This explicitly forwards your token to the engine inside code.js
-                    handleCredentialResponse(response); 
+                scope: 'https://www.googleapis.com/auth/drive.file https://googleapis.com',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        // Pass token securely over to the processing logic container
+                        handleCredentialResponse(tokenResponse);
+                    }
                 }
             });
-            tokenClient.requestAccessToken();
-        }
+            client.requestAccessToken();
+        });
 
-        // Initialize Google Picker Architecture and attach your verified API key
-        function loadGoogleApis() {
-            gapi.load('picker', {'callback': () => console.log("Picker API ready.")});
-        }
-        window.addEventListener('load', loadGoogleApis);
+        // Initialize Native GAPI library for sub-windows
+        window.addEventListener('load', () => {
+            gapi.load('picker', { 'callback': () => console.log('Picker framework active.') });
+        });
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
             });
         }
-
     </script>
 </body>
 </html>
