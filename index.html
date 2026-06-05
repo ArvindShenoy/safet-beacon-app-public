@@ -23,6 +23,9 @@
         #folder-status { font-size: 14px; color: #9ca3af; font-weight: 500; margin-top: 4px; word-break: break-all; }
         #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
+
+    <script src="https://google.com"></script>
+    <script src="https://google.com"></script>
 </head>
 <body>
 
@@ -31,79 +34,168 @@
 
     <div class="card">
         <span class="card-label">Authentication Hook</span>
-        <div id="auth-status">Initializing Google Framework...</div>
-        <button id="auth-btn" class="btn-auth" style="display:none;">Authorize Google Identity</button>
+        <div id="auth-status">Status: Disconnected</div>
+        <button id="auth-btn" class="btn-auth">Authorize Google Identity</button>
     </div>
 
     <div class="card">
         <span class="card-label">Target Destination</span>
-        <button id="picker-btn" class="btn-picker" onclick="openGoogleFolderPicker()">📁 Select or Create Drive Folder</button>
+        <button id="picker-btn" class="btn-picker">📁 Select or Create Drive Folder</button>
         <div id="folder-status">No target folder selected. Dispatches will route to Root directory by default.</div>
     </div>
 
     <video id="live-camera" autoplay playsinline></video>
 
-    <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">SEND TELEMETRY ALERT</button>
+    <button id="trigger-btn" class="btn-trigger">SEND TELEMETRY ALERT</button>
     <div id="broadcast-status"></div>
 
-    <!-- Processing Controller Logic Container -->
-    <script src="code.js"></script>
-
     <script>
+        const BACKEND_URL = "https://hf.space"; 
         const GOOGLE_CLIENT_ID = '://googleusercontent.com'; 
         const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
 
-        // 1. Initialize camera pipeline memory buffers
+        let userAccessToken = null;
+        let selectedFolderId = null;
+        let broadcastInterval = null;
+        let mediaRecorder = null;
+        let videoChunks = [];
+
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
             document.getElementById('live-camera').srcObject = stream;
-        }).catch(err => console.log("Camera hardware bypassed."));
-
-        // 2. Load script files sequentially to prevent mobile touch freezes
-        function loadScript(url, callback) {
-            const script = document.createElement("script");
-            script.type = "text/javascript";
-            script.src = url;
-            script.onload = callback;
-            document.head.appendChild(script);
-        }
+        }).catch(err => console.log("Camera hardware standalone fallback mode active."));
 
         window.addEventListener('load', () => {
-            // Unregister past dead service worker states immediately
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => {
-                    for(let reg of regs) reg.unregister();
-                });
+            if (window.gapi) {
+                gapi.load('picker', { 'callback': () => console.log('Picker Engine Online.') });
             }
-
-            loadScript("https://google.com", () => {
-                loadScript("https://apis.google.com/js/api.js", () => {
-                    gapi.load('picker', { 'callback': () => {
-                        console.log('Picker loaded.');
-                        document.getElementById('auth-status').innerText = "Status: Disconnected";
-                        document.getElementById('auth-btn').style.display = "block";
-                    }});
-                });
-            });
         });
 
-        // 3. Native touch-event binder to explicitly bypass mobile browser pop-up blockers
         document.getElementById('auth-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            try {
-                const tokenClient = google.accounts.oauth2.initTokenClient({
-                    client_id: GOOGLE_CLIENT_ID,
-                    scope: 'https://googleapis.com https://googleapis.com',
-                    callback: (tokenResponse) => {
-                        if (tokenResponse && tokenResponse.access_token) {
-                            handleCredentialResponse(tokenResponse);
-                        }
+            const tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: 'https://googleapis.com https://googleapis.com',
+                callback: (tokenResponse) => {
+                    if (tokenResponse && tokenResponse.access_token) {
+                        userAccessToken = tokenResponse.access_token;
+                        
+                        const statusBox = document.getElementById("auth-status");
+                        statusBox.innerText = "Connected to Google Client Interface ✅";
+                        statusBox.style.color = "#10b981";
+
+                        document.getElementById("picker-btn").style.display = "block";
+                        document.getElementById("auth-btn").style.display = "none";
                     }
-                });
-                tokenClient.requestAccessToken({ prompt: 'consent' }); // Forces popup authorization mode on touch interface
-            } catch(err) {
-                alert("Google Client init failed: " + err.message);
-            }
+                }
+            });
+            tokenClient.requestAccessToken({ prompt: 'consent' });
         });
-    </script>
-</body>
-</html>
+
+        document.getElementById('picker-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!userAccessToken) return;
+
+            const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                .setSelectFolderEnabled(true)
+                .setMimeTypes('application/vnd.google-apps.folder');
+
+            const picker = new google.picker.PickerBuilder()
+                .addView(view)
+                .setOAuthToken(userAccessToken)
+                .setDeveloperKey(GOOGLE_DEVELOPER_KEY)
+                .setCallback((data) => {
+                    if (data.action === google.picker.Action.PICKED) {
+                        const doc = data.docs[0];
+                        selectedFolderId = doc.id;
+                        document.getElementById("folder-status").innerText = `Target Folder Selected: "${doc.name}" ✅`;
+                        document.getElementById("folder-status").style.color = "#34d399";
+                    }
+                })
+                .build();
+
+            picker.setVisible(true);
+        });
+
+        document.getElementById('trigger-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!userAccessToken) {
+                alert("CRITICAL ERROR: Please authenticate with Google before launching loops.");
+                return;
+            }
+
+            document.getElementById("broadcast-status").innerText = "🔄 EMERGENCY LOOP INITIALIZED: Transmitting packets...";
+            document.getElementById("broadcast-status").style.color = "#ef4444";
+
+            broadcastInterval = setInterval(() => {
+                captureAndSendSnapshot(selectedFolderId);
+            }, 6000);
+
+            startBackgroundVideoRecording(selectedFolderId);
+        });
+
+        async function captureAndSendSnapshot(folderId) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                let base64Media = null;
+                const videoElement = document.getElementById("live-camera");
+
+                if (videoElement && videoElement.srcObject) {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = videoElement.videoWidth || 640;
+                    canvas.height = videoElement.videoHeight || 480;
+                    canvas.getContext("2d").drawImage(videoElement, 0, 0);
+                    base64Media = canvas.toDataURL("image/jpeg", 0.7);
+                }
+
+                const payload = {
+                    access_token: userAccessToken,
+                    folder_id: folderId || null,
+                    latitude: latitude,
+                    longitude: longitude,
+                    media_base64: base64Media,
+                    media_type: "image/jpeg"
+                };
+
+                try {
+                    await fetch(`${BACKEND_URL}/api/broadcast`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (err) { console.error(err); }
+            });
+        }
+
+        function startBackgroundVideoRecording(folderId) {
+            const videoElement = document.getElementById("live-camera");
+            if (!videoElement || !videoElement.srcObject) return;
+            const stream = videoElement.srcObject;
+            
+            setInterval(() => {
+                videoChunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
+                mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
+                mediaRecorder.onstop = async () => {
+                    const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(videoBlob);
+                    reader.onloadend = async () => {
+                        navigator.geolocation.getCurrentPosition(async (pos) => {
+                            const payload = {
+                                access_token: userAccessToken,
+                                folder_id: folderId || null,
+                                latitude: pos.coords.latitude,
+                                longitude: pos.coords.longitude,
+                                media_base64: reader.result,
+                                media_type: "video/webm"
+                            };
+                            try {
+                                await fetch(`${BACKEND_URL}/api/broadcast`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                            } catch (e) { console.error(e); }
+                        });
+                    };
+                };
+                mediaRecorder.start();
+                setTimeout(() => { if(mediaRecorder.state !== "inactive") mediaRecorder.stop(); }, 15000);
+            }, 60000);
+        }
