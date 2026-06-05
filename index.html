@@ -61,23 +61,26 @@
             document.getElementById('live-camera').srcObject = stream;
         }).catch(err => console.log("Camera hardware standalone tracking context fallback."));
 
-        // Global Configuration Variables
-        const GOOGLE_CLIENT_ID = '697441725870-9jt8upabgou1vhmv63tn34kvg15jubud.apps.googleusercontent.com'; // <-- Paste your Client ID string here
-        const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';                  // <-- Paste your API Key here
+                // Global Configuration Variables
+        const GOOGLE_CLIENT_ID = '697441725870-9jt8upabgou1vhmv63tn34kvg15jubud.apps.googleusercontent.com'; 
+        const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
 
         let tokenClient;
         function initiateGoogleLogin() {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://googleapis.com https://googleapis.com',
-                callback: handleCredentialResponse
+                callback: (response) => {
+                    // This explicitly forwards your token to the engine inside code.js
+                    handleCredentialResponse(response); 
+                }
             });
             tokenClient.requestAccessToken();
         }
 
-        // Initialize Google Picker Architecture
+        // Initialize Google Picker Architecture and attach your verified API key
         function loadGoogleApis() {
-            gapi.load('picker', {'callback': () => console.log("Picker API loaded successfully.")});
+            gapi.load('picker', {'callback': () => console.log("Picker API ready.")});
         }
         window.addEventListener('load', loadGoogleApis);
 
@@ -86,6 +89,7 @@
                 navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
             });
         }
+
     </script>
 </body>
 </html>
