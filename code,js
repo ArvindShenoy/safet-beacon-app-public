@@ -1,5 +1,5 @@
 // 🚨 CRUCIAL CONFIGURATION: Tell your app where your Python server lives
-const BACKEND_URL = "https://hf.space"; 
+const BACKEND_URL = "https://arvindshenoy-safety-beacon-backend.hf.space"; 
 
 let userAccessToken = null;
 
