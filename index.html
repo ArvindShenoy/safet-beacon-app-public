@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Safety Beacon App</title>
+    <!-- Mobile Screen Optimizations -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- Link to make it downloadable on mobile -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Basic UI Styling for Mobile Phone Interface -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 20px; background-color: #f9f9f9; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { width: 90%; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; margin-top: 10px; }
+        button { width: 90%; padding: 15px; font-size: 16px; font-weight: bold; border-radius: 8px; border: none; margin: 10px 0; cursor: pointer; }
+        .btn-auth { background-color: #4285F4; color: white; }
+        .btn-trigger { background-color: #d32f2f; color: white; font-size: 18px; box-shadow: 0 4px 10px rgba(211,47,47,0.4); }
+        #live-camera { width: 90%; max-width: 350px; border-radius: 8px; background: #000; margin-top: 10px; transform: scaleX(-1); }
+    </style>
+
+    <!-- Load Google Authentication Infrastructure -->
+    <script src="https://google.com" async defer></script>
+</head>
+<body>
+
+    <h2>🚨 Safety Beacon</h2>
+    <p>Zero-Data Emergency Broadcast System</p>
+
+    <!-- Step A: Google Login Card -->
+    <div class="card">
+        <div id="auth-status" style="font-weight: bold; margin-bottom: 10px;">Status: Not Connected</div>
+        <button class="btn-auth" onclick="initiateGoogleLogin()">🔑 Connect with Google Drive</button>
+    </div>
+
+    <!-- Step B: Destination Settings Card -->
+    <div class="card">
+        <label style="font-weight: bold;">Your Private Google Drive Folder URL:</label><br>
+        <input type="text" id="drive-folder-url" placeholder="Paste shared folder link here">
+    </div>
+
+    <!-- Step C: Active Viewport Hardware Hook -->
+    <div class="card">
+        <video id="live-camera" autoplay playsinline></video>
+    </div>
+
+    <!-- Step D: Broadcast Trigger Button -->
+    <button class="btn-trigger" onclick="triggerEmergencyBroadcast()">⚠️ TRIGGER EMERGENCY BROADCAST</button>
+    <p id="broadcast-status" style="font-weight: bold; color: #d32f2f;"></p>
+
+    <!-- Connect our processing logic -->
+    <script src="code.js"></script>
+
+    <script>
+        // Request hardware access for video processing loop
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
+            document.getElementById('live-camera').srcObject = stream;
+        }).catch(err => console.log("Camera access bypassed. Streaming telemetry coordinates only."));
+
+        // Trigger implicit authentication popup request
+        let tokenClient;
+        function initiateGoogleLogin() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: 'YOUR_GOOGLE_CLIENT_://googleusercontent.com', // <-- Replace with your OAuth Client ID later
+                scope: 'https://googleapis.com',
+                callback: handleCredentialResponse
+            });
+            tokenClient.requestAccessToken();
+        }
+
+        // Register Mobile Download Infrastructure
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
+            });
+        }
+    </script>
+</body>
+</html>
