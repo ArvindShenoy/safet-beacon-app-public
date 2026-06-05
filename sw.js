@@ -1,22 +1,19 @@
-const CACHE_NAME = 'safety-beacon-v1';
-const ASSETS = [
-  './index.html',
-  './code.js',
-  './manifest.json'
-];
-
+// This forces your phone to discard old offline assets immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
-  );
+  // Bypass cache completely and pull fresh code from the internet
+  event.respondWith(fetch(event.request));
 });
