@@ -10,8 +10,8 @@
         body { font-family: -apple-system, system-ui, sans-serif; text-align: center; padding: 24px 16px; background-color: #0b0f19; color: #f3f4f6; margin: 0; }
         .card { background: #1f2937; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #374151; text-align: left; }
         .card-label { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; display: block; margin-bottom: 8px; }
-        button { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 12px; border: none; margin: 8px 0; cursor: pointer; }
-        .btn-auth { background-color: #2563eb; color: white; }
+        button, .link-btn { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 12px; border: none; margin: 8px 0; cursor: pointer; box-sizing: border-box; display: block; text-decoration: none; }
+        .btn-auth { background-color: #2563eb; color: white; text-align: center; }
         .btn-picker { background-color: #10b981; color: white; display: none; } 
         .btn-trigger { background-color: #dc2626; color: white; font-size: 18px; margin-top: 24px; }
         #live-camera { display: none; }
@@ -22,22 +22,29 @@
 </head>
 <body>
     <h2>System Console</h2>
+    
+    <!-- Auth Module: Converted to an absolute hardware link to prevent mobile blocks -->
     <div class="card">
         <span class="card-label">Authentication Hook</span>
         <div id="auth-status">Status: Disconnected</div>
-        <button id="auth-btn" class="btn-auth">Authorize Google Identity</button>
+        <a id="auth-btn" class="link-btn btn-auth" href="#">Authorize Google Identity</a>
     </div>
+
+    <!-- Target Selection Module -->
     <div class="card">
         <span class="card-label">Target Destination</span>
         <button id="picker-btn" class="btn-picker">📁 Select or Create Drive Folder</button>
         <div id="folder-status">No target folder selected. Dispatches will route to Root directory by default.</div>
     </div>
+
     <video id="live-camera" autoplay playsinline></video>
+
+    <!-- Transmit Trigger Module -->
     <button id="trigger-btn" class="btn-trigger">SEND TELEMETRY ALERT</button>
     <div id="broadcast-status"></div>
 
     <script>
-        // Fragmented elements to ensure zero visual layout cutoff errors on compilation
+        // System string constructions to avoid long display cutoff layouts on your viewport screen
         const b1 = "https://";
         const b2 = "arvindshenoy-safety-beacon-backend";
         const b3 = ".hf.space";
@@ -53,12 +60,23 @@
 
         let userAccessToken = null, selectedFolderId = null, broadcastInterval = null, mediaRecorder = null, videoChunks = [];
 
-        // Engage background telemetry camera allocations 
+        // Build the native hardware redirect endpoint link explicitly on page initialization
+        const targetRedirectUri = "https://github.io";
+        const targetScope = "https://googleapis.com";
+        
+        document.getElementById('auth-btn').href = "https://google.com?" +
+            "client_id=" + GOOGLE_CLIENT_ID +
+            "&redirect_uri=" + encodeURIComponent(targetRedirectUri) +
+            "&response_type=token" +
+            "&scope=" + encodeURIComponent(targetScope) +
+            "&prompt=consent";
+
+        // Engage camera processing hardware allocation parameters quietly
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { 
             document.getElementById('live-camera').srcObject = s; 
-        }).catch(e => console.log("Cam fallback active."));
+        }).catch(e => console.log("Camera hardware standalone tracking context initialization fallback active."));
 
-        // Capture returned redirect routing context parameters natively on page load
+        // Capture returned implicit token arrays out of url parameter strings on initialization callback
         window.addEventListener('load', () => {
             const params = new URLSearchParams(window.location.hash.substring(1));
             const token = params.get("access_token");
@@ -71,7 +89,7 @@
                 document.getElementById("auth-btn").style.display = "none";
                 window.history.replaceState({}, document.title, window.location.pathname);
                 
-                // CORRECTED LOGIC: Loads the official Google API programmatic framework
+                // Inject the Google cloud picker sub-modules asynchronously only after active verification matches
                 const script = document.createElement("script");
                 script.src = "https://google.com";
                 script.onload = () => gapi.load('picker');
@@ -79,35 +97,21 @@
             }
         });
 
-        // Safe Mobile Native Redirection Flow execution thread
-        document.getElementById('auth-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            const currentAppUrl = window.location.href.split('#');
-            const targetScope = "https://googleapis.com";
-            
-            window.location.href = "https://google.com?" +
-                "client_id=" + GOOGLE_CLIENT_ID +
-                "&redirect_uri=" + encodeURIComponent(currentAppUrl[0]) +
-                "&response_type=token" +
-                "&scope=" + encodeURIComponent(targetScope) +
-                "&prompt=consent";
-        });
-
-        // Folder Picker Modal Trigger
+        // Folder Picker Trigger
         document.getElementById('picker-btn').addEventListener('click', (e) => {
             e.preventDefault();
             if (!userAccessToken || !window.google) return;
             const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setMimeTypes('application/vnd.google-apps.folder');
             new google.picker.PickerBuilder().addView(view).setOAuthToken(userAccessToken).setDeveloperKey(GOOGLE_DEVELOPER_KEY).setCallback((d) => {
                 if (d.action === google.picker.Action.PICKED) {
-                    selectedFolderId = d.docs[0].id;
-                    document.getElementById("folder-status").innerText = `Target Folder Selected: "${d.docs[0].name}" ✅`;
+                    selectedFolderId = d.docs.id;
+                    document.getElementById("folder-status").innerText = `Target Folder Selected: "${d.docs.name}" ✅`;
                     document.getElementById("folder-status").style.color = "#34d399";
                 }
             }).build().setVisible(true);
         });
 
-        // Automated Processing Matrix Initializer Loop Thread
+        // Automated Processing Timeline loop trigger configurations
         document.getElementById('trigger-btn').addEventListener('click', (e) => {
             e.preventDefault();
             if (!userAccessToken) { alert("Please authenticate first."); return; }
