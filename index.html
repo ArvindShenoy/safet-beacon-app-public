@@ -2,50 +2,39 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Beacon Engine</title>
+    <title>System Beacon Console</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 24px 16px; background-color: #0b0f19; color: #f3f4f6; margin: 0; }
-        h2 { font-size: 22px; margin-bottom: 4px; color: #ffffff; letter-spacing: -0.5px; }
-        .subtitle { font-size: 14px; color: #9ca3af; margin-top: 0; margin-bottom: 28px; }
+        body { font-family: -apple-system, system-ui, sans-serif; text-align: center; padding: 24px 16px; background-color: #0b0f19; color: #f3f4f6; margin: 0; }
         .card { background: #1f2937; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #374151; text-align: left; }
-        .card-label { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px; }
-        button { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 12px; border: none; margin: 8px 0; cursor: pointer; transition: background 0.2s; }
+        .card-label { font-size: 13px; font-weight: 600; color: #9ca3af; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        button { width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 12px; border: none; margin: 8px 0; cursor: pointer; }
         .btn-auth { background-color: #2563eb; color: white; }
         .btn-picker { background-color: #10b981; color: white; display: none; } 
-        .btn-trigger { background-color: #dc2626; color: white; font-size: 18px; margin-top: 24px; box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3); }
+        .btn-trigger { background-color: #dc2626; color: white; font-size: 18px; margin-top: 24px; }
         #live-camera { display: none; }
         #auth-status { font-size: 15px; color: #ef4444; font-weight: 500; margin-bottom: 10px; }
-        #folder-status { font-size: 14px; color: #9ca3af; font-weight: 500; margin-top: 4px; word-break: break-all; }
+        #folder-status { font-size: 14px; color: #9ca3af; font-weight: 500; }
         #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
-
-    <script src="https://google.com"></script>
-    <script src="https://google.com"></script>
+    <script src="https://google.com" defer></script>
+    <script src="https://google.com" defer></script>
 </head>
 <body>
-
     <h2>System Console</h2>
-    <p class="subtitle">Secure Telemetry Router</p>
-
     <div class="card">
         <span class="card-label">Authentication Hook</span>
         <div id="auth-status">Status: Disconnected</div>
         <button id="auth-btn" class="btn-auth">Authorize Google Identity</button>
     </div>
-
     <div class="card">
         <span class="card-label">Target Destination</span>
         <button id="picker-btn" class="btn-picker">📁 Select or Create Drive Folder</button>
         <div id="folder-status">No target folder selected. Dispatches will route to Root directory by default.</div>
     </div>
-
     <video id="live-camera" autoplay playsinline></video>
-
     <button id="trigger-btn" class="btn-trigger">SEND TELEMETRY ALERT</button>
     <div id="broadcast-status"></div>
 
@@ -54,148 +43,81 @@
         const GOOGLE_CLIENT_ID = '://googleusercontent.com'; 
         const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
 
-        let userAccessToken = null;
-        let selectedFolderId = null;
-        let broadcastInterval = null;
-        let mediaRecorder = null;
-        let videoChunks = [];
+        let userAccessToken = null, selectedFolderId = null, broadcastInterval = null, mediaRecorder = null, videoChunks = [];
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(stream => {
-            document.getElementById('live-camera').srcObject = stream;
-        }).catch(err => console.log("Camera hardware standalone fallback mode active."));
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { document.getElementById('live-camera').srcObject = s; }).catch(e => console.log("Cam fallback active."));
 
         window.addEventListener('load', () => {
-            if (window.gapi) {
-                gapi.load('picker', { 'callback': () => console.log('Picker Engine Online.') });
-            }
+            setTimeout(() => { if(window.gapi) gapi.load('picker', {'callback': () => console.log('Picker Active')}); }, 1000);
         });
 
         document.getElementById('auth-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            const tokenClient = google.accounts.oauth2.initTokenClient({
+            google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 scope: 'https://googleapis.com https://googleapis.com',
-                callback: (tokenResponse) => {
-                    if (tokenResponse && tokenResponse.access_token) {
-                        userAccessToken = tokenResponse.access_token;
-                        
-                        const statusBox = document.getElementById("auth-status");
-                        statusBox.innerText = "Connected to Google Client Interface ✅";
-                        statusBox.style.color = "#10b981";
-
+                ux_mode: 'popup',
+                callback: (resp) => {
+                    if (resp && resp.access_token) {
+                        userAccessToken = resp.access_token;
+                        document.getElementById("auth-status").innerText = "Connected to Google Client Interface ✅";
+                        document.getElementById("auth-status").style.color = "#10b981";
                         document.getElementById("picker-btn").style.display = "block";
                         document.getElementById("auth-btn").style.display = "none";
                     }
                 }
-            });
-            tokenClient.requestAccessToken({ prompt: 'consent' });
+            }).requestAccessToken();
         });
 
         document.getElementById('picker-btn').addEventListener('click', (e) => {
             e.preventDefault();
             if (!userAccessToken) return;
-
-            const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-                .setSelectFolderEnabled(true)
-                .setMimeTypes('application/vnd.google-apps.folder');
-
-            const picker = new google.picker.PickerBuilder()
-                .addView(view)
-                .setOAuthToken(userAccessToken)
-                .setDeveloperKey(GOOGLE_DEVELOPER_KEY)
-                .setCallback((data) => {
-                    if (data.action === google.picker.Action.PICKED) {
-                        const doc = data.docs[0];
-                        selectedFolderId = doc.id;
-                        document.getElementById("folder-status").innerText = `Target Folder Selected: "${doc.name}" ✅`;
-                        document.getElementById("folder-status").style.color = "#34d399";
-                    }
-                })
-                .build();
-
-            picker.setVisible(true);
+            const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setMimeTypes('application/vnd.google-apps.folder');
+            new google.picker.PickerBuilder().addView(view).setOAuthToken(userAccessToken).setDeveloperKey(GOOGLE_DEVELOPER_KEY).setCallback((d) => {
+                if (d.action === google.picker.Action.PICKED) {
+                    selectedFolderId = d.docs[0].id;
+                    document.getElementById("folder-status").innerText = `Target Folder Selected: "${d.docs[0].name}" ✅`;
+                    document.getElementById("folder-status").style.color = "#34d399";
+                }
+            }).build().setVisible(true);
         });
 
         document.getElementById('trigger-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            if (!userAccessToken) {
-                alert("CRITICAL ERROR: Please authenticate with Google before launching loops.");
-                return;
-            }
-
+            if (!userAccessToken) { alert("Please authenticate first."); return; }
             document.getElementById("broadcast-status").innerText = "🔄 EMERGENCY LOOP INITIALIZED: Transmitting packets...";
             document.getElementById("broadcast-status").style.color = "#ef4444";
-
-            broadcastInterval = setInterval(() => {
-                captureAndSendSnapshot(selectedFolderId);
-            }, 6000);
-
+            broadcastInterval = setInterval(() => { captureAndSendSnapshot(selectedFolderId); }, 6000);
             startBackgroundVideoRecording(selectedFolderId);
         });
 
-        async function captureAndSendSnapshot(folderId) {
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const { latitude, longitude } = position.coords;
-                let base64Media = null;
-                const videoElement = document.getElementById("live-camera");
-
-                if (videoElement && videoElement.srcObject) {
-                    const canvas = document.createElement("canvas");
-                    canvas.width = videoElement.videoWidth || 640;
-                    canvas.height = videoElement.videoHeight || 480;
-                    canvas.getContext("2d").drawImage(videoElement, 0, 0);
-                    base64Media = canvas.toDataURL("image/jpeg", 0.7);
+        async function captureAndSendSnapshot(fId) {
+            navigator.geolocation.getCurrentPosition(async (p) => {
+                let b64 = null; const v = document.getElementById("live-camera");
+                if (v && v.srcObject) {
+                    const c = document.createElement("canvas"); c.width = v.videoWidth || 640; c.height = v.videoHeight || 480;
+                    c.getContext("2d").drawImage(v, 0, 0); b64 = c.toDataURL("image/jpeg", 0.7);
                 }
-
-                const payload = {
-                    access_token: userAccessToken,
-                    folder_id: folderId || null,
-                    latitude: latitude,
-                    longitude: longitude,
-                    media_base64: base64Media,
-                    media_type: "image/jpeg"
-                };
-
-                try {
-                    await fetch(`${BACKEND_URL}/api/broadcast`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
-                } catch (err) { console.error(err); }
+                fetch(`${BACKEND_URL}/api/broadcast`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ access_token: userAccessToken, folder_id: fId, latitude: p.coords.latitude, longitude: p.coords.longitude, media_base64: b64, media_type: "image/jpeg" })}).catch(e => console.log(e));
             });
         }
 
-        function startBackgroundVideoRecording(folderId) {
-            const videoElement = document.getElementById("live-camera");
-            if (!videoElement || !videoElement.srcObject) return;
-            const stream = videoElement.srcObject;
-            
+        function startBackgroundVideoRecording(fId) {
+            const v = document.getElementById("live-camera"); if (!v || !v.srcObject) return;
             setInterval(() => {
-                videoChunks = [];
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
+                videoChunks = []; mediaRecorder = new MediaRecorder(v.srcObject, { mimeType: 'video/webm;codecs=vp8' });
                 mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
                 mediaRecorder.onstop = async () => {
-                    const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(videoBlob);
+                    const reader = new FileReader(); reader.readAsDataURL(new Blob(videoChunks, { type: 'video/webm' }));
                     reader.onloadend = async () => {
                         navigator.geolocation.getCurrentPosition(async (pos) => {
-                            const payload = {
-                                access_token: userAccessToken,
-                                folder_id: folderId || null,
-                                latitude: pos.coords.latitude,
-                                longitude: pos.coords.longitude,
-                                media_base64: reader.result,
-                                media_type: "video/webm"
-                            };
-                            try {
-                                await fetch(`${BACKEND_URL}/api/broadcast`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                            } catch (e) { console.error(e); }
+                            fetch(`${BACKEND_URL}/api/broadcast`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ access_token: userAccessToken, folder_id: fId, latitude: pos.coords.latitude, longitude: pos.coords.longitude, media_base64: reader.result, media_type: "video/webm" })}).catch(e => console.log(e));
                         });
                     };
                 };
-                mediaRecorder.start();
-                setTimeout(() => { if(mediaRecorder.state !== "inactive") mediaRecorder.stop(); }, 15000);
+                mediaRecorder.start(); setTimeout(() => { if(mediaRecorder.state !== "inactive") mediaRecorder.stop(); }, 15000);
             }, 60000);
         }
+    </script>
+</body>
+</html>
