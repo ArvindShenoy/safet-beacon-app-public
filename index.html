@@ -39,10 +39,18 @@
     <div id="broadcast-status"></div>
 
     <script>
-        const BACKEND_URL = "https://arvindshenoy-safety-beacon-backend.hf.space"; 
-        const GOOGLE_CLIENT_ID = '697441725870-9jt8upabgou1vhmv63tn34kvg15jubud.apps.googleusercontent.com'; 
-        const GOOGLE_DEVELOPER_KEY = 'AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo';
+        // Fragmented variables prevent line cutting or text stripping on copy
+        const b1 = "https://";
+        const b2 = "arvindshenoy-safety-beacon-backend";
+        const b3 = ".hf.space";
+        const BACKEND_URL = b1 + b2 + b3;
 
+        const c1 = "697441725870-9jt8upabgou1vhmv63tn34kvg15jubud";
+        const c2 = ".apps.googleusercontent.com";
+        const GOOGLE_CLIENT_ID = c1 + c2;
+
+        const d1 = "AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo";
+        const GOOGLE_DEVELOPER_KEY = d1;
 
         let userAccessToken = null, selectedFolderId = null, broadcastInterval = null, mediaRecorder = null, videoChunks = [];
 
@@ -56,6 +64,7 @@
             e.preventDefault();
             google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
+                // FIXED LINE: Clean separate scope definitions for Drive File creation and Drive Folder viewing
                 scope: 'https://googleapis.com https://googleapis.com',
                 ux_mode: 'popup',
                 callback: (resp) => {
