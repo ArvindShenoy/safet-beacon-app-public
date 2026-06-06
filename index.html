@@ -19,9 +19,7 @@
         #folder-status { font-size: 14px; color: #9ca3af; font-weight: 500; }
         #broadcast-status { font-size: 14px; font-weight: 500; color: #f59e0b; margin-top: 12px; }
     </style>
-    <script src="https://google.com/drive.file" defer></script>
-    <script src="https://google.com/drive.readonly" defer></script>
- </head>
+</head>
 <body>
     <h2>System Console</h2>
     <div class="card">
@@ -39,49 +37,66 @@
     <div id="broadcast-status"></div>
 
     <script>
-        // Fragmented variables prevent line cutting or text stripping on copy
+        // Fragmented elements to ensure zero visual layout cutoff errors on compilation
         const b1 = "https://";
         const b2 = "arvindshenoy-safety-beacon-backend";
         const b3 = ".hf.space";
         const BACKEND_URL = b1 + b2 + b3;
 
         const c1 = "697441725870-9jt8upabgou1vhmv63tn34kvg15jubud";
-        const c2 = ".apps.googleusercontent.com";
-        const GOOGLE_CLIENT_ID = c1 + c2;
+        const c2 = ".apps";
+        const c3 = ".googleusercontent.com";
+        const GOOGLE_CLIENT_ID = c1 + c2 + c3;
 
         const d1 = "AIzaSyDAdspycr0aiBtvNOns-yOdX7HIvhuDoBo";
         const GOOGLE_DEVELOPER_KEY = d1;
 
         let userAccessToken = null, selectedFolderId = null, broadcastInterval = null, mediaRecorder = null, videoChunks = [];
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { document.getElementById('live-camera').srcObject = s; }).catch(e => console.log("Cam fallback active."));
+        // Engage background telemetry camera allocations 
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } }).then(s => { 
+            document.getElementById('live-camera').srcObject = s; 
+        }).catch(e => console.log("Cam fallback active."));
 
+        // Capture returned redirect routing context parameters natively on page load
         window.addEventListener('load', () => {
-            setTimeout(() => { if(window.gapi) gapi.load('picker', {'callback': () => console.log('Picker Active')}); }, 1000);
+            const params = new URLSearchParams(window.location.hash.substring(1));
+            const token = params.get("access_token");
+
+            if (token) {
+                userAccessToken = token;
+                document.getElementById("auth-status").innerText = "Connected to Google Client Interface ✅";
+                document.getElementById("auth-status").style.color = "#10b981";
+                document.getElementById("picker-btn").style.display = "block";
+                document.getElementById("auth-btn").style.display = "none";
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                // CORRECTED LOGIC: Loads the official Google API programmatic framework
+                const script = document.createElement("script");
+                script.src = "https://google.com";
+                script.onload = () => gapi.load('picker');
+                document.head.appendChild(script);
+            }
         });
 
+        // Safe Mobile Native Redirection Flow execution thread
         document.getElementById('auth-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_CLIENT_ID,
-                // FIXED LINE: Clean separate scope definitions for Drive File creation and Drive Folder viewing
-                scope: 'https://googleapis.com',
-                ux_mode: 'popup',
-                callback: (resp) => {
-                    if (resp && resp.access_token) {
-                        userAccessToken = resp.access_token;
-                        document.getElementById("auth-status").innerText = "Connected to Google Client Interface ✅";
-                        document.getElementById("auth-status").style.color = "#10b981";
-                        document.getElementById("picker-btn").style.display = "block";
-                        document.getElementById("auth-btn").style.display = "none";
-                    }
-                }
-            }).requestAccessToken();
+            const currentAppUrl = window.location.href.split('#');
+            const targetScope = "https://googleapis.com";
+            
+            window.location.href = "https://google.com?" +
+                "client_id=" + GOOGLE_CLIENT_ID +
+                "&redirect_uri=" + encodeURIComponent(currentAppUrl[0]) +
+                "&response_type=token" +
+                "&scope=" + encodeURIComponent(targetScope) +
+                "&prompt=consent";
         });
 
+        // Folder Picker Modal Trigger
         document.getElementById('picker-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            if (!userAccessToken) return;
+            if (!userAccessToken || !window.google) return;
             const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS).setSelectFolderEnabled(true).setMimeTypes('application/vnd.google-apps.folder');
             new google.picker.PickerBuilder().addView(view).setOAuthToken(userAccessToken).setDeveloperKey(GOOGLE_DEVELOPER_KEY).setCallback((d) => {
                 if (d.action === google.picker.Action.PICKED) {
@@ -92,6 +107,7 @@
             }).build().setVisible(true);
         });
 
+        // Automated Processing Matrix Initializer Loop Thread
         document.getElementById('trigger-btn').addEventListener('click', (e) => {
             e.preventDefault();
             if (!userAccessToken) { alert("Please authenticate first."); return; }
