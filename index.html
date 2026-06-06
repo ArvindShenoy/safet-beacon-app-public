@@ -64,7 +64,7 @@
             google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
                 // FIXED LINE: Clean separate scope definitions for Drive File creation and Drive Folder viewing
-                scope: 'https://googleapis.com https://googleapis.com',
+                scope: 'https://googleapis.com',
                 ux_mode: 'popup',
                 callback: (resp) => {
                     if (resp && resp.access_token) {
